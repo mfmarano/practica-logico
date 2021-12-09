@@ -27,7 +27,7 @@ gozaBeneficio(carl, confort(sillon)).
 gozaBeneficio(lenny, confort(sillon)).
 gozaBeneficio(lenny, confort(estacionamiento, techado)).
 gozaBeneficio(carl, confort(estacionamiento, libre)).
-gozaBeneficio(clark, confort(viajeSinTráfico)).
+gozaBeneficio(clark, confort(viajeSinTrafico)).
 gozaBeneficio(clark, dispersion(fiestas)).
 gozaBeneficio(burns, dispersion(fiestas)).
 gozaBeneficio(lenny, economico(descuento, 500)).
@@ -44,8 +44,15 @@ esMagio(Persona) :-
     persona(elElegido(Persona)).
 
 aspiranteMagio(Persona) :-
-    hijo(Persona, Magio),
+    descendiente(Persona, Magio),
     esMagio(Magio).
+
+descendiente(Persona, OtraPersona) :-
+    hijo(Persona, OtraPersona).
+
+descendiente(Persona, OtraPersona) :-
+    hijo(Persona, Alguien),
+    descendiente(Alguien, OtraPersona).
 
 aspiranteMagio(Persona) :-
     salvo(Persona, Magio),
@@ -76,6 +83,7 @@ puedeDarOrdenes(UnMagio, OtroMagio) :-
 % =============
 
 sienteEnvidia(Persona, Envidiadas) :-
+    persona(Persona),
     findall(Envidiada, sienteEnvidiaPor(Persona, Envidiada), Envidiadas).
     
 sienteEnvidiaPor(Persona, Envidiada) :-
@@ -83,12 +91,10 @@ sienteEnvidiaPor(Persona, Envidiada) :-
     esMagio(Envidiada).
 
 sienteEnvidiaPor(Persona, Envidiada) :-
-    persona(Persona),
     not(aspiranteMagio(Persona)),
     aspiranteMagio(Envidiada).
 
-sienteEnvidiaPor(Persona, Envidiada) :-
-    persona(novato(Persona)),
+sienteEnvidiaPor(novato(_), Envidiada) :-
     persona(alMando(Envidiada, _)).
 
 % =============
@@ -96,16 +102,46 @@ sienteEnvidiaPor(Persona, Envidiada) :-
 % =============
 
 masEnvidioso(Persona) :-
-    cantidadDePersonasEnvidiadas(Persona, Cantidad),
-    not(existeAlguienMasEnvidioso(Persona, Cantidad)).
+    persona(Persona),
+    not(existeAlguienMasEnvidioso(Persona)).
 
-existeAlguienMasEnvidioso(Persona, Cantidad) :-
+existeAlguienMasEnvidioso(Persona) :-
+    cantidadDePersonasEnvidiadas(Persona, Cantidad),
     cantidadDePersonasEnvidiadas(OtraPersona, OtraCantidad),
-    OtraPersona \= Persona,
+    Persona \= OtraPersona,
     OtraCantidad > Cantidad.
 
 cantidadDePersonasEnvidiadas(Persona, Cantidad) :-
     sienteEnvidia(Persona, PersonasEnvidiadas),
     length(PersonasEnvidiadas, Cantidad).
 
-    
+% =============
+%    Punto 5   
+% =============
+
+soloLoGoza(Persona, Beneficio) :-
+    gozaBeneficio(Persona, Beneficio),
+    not(otroTieneElMismoBeneficio(Persona, Beneficio)).
+
+otroTieneElMismoBeneficio(Persona, Beneficio) :-
+    gozaBeneficio(OtraPersona, Beneficio),
+    Persona \= OtraPersona.
+
+% =============
+%    Punto 6   
+% =============
+
+tipoDeBeneficioMasAprovechado(Beneficio) :-
+    gozaBeneficio(_, Beneficio),
+    not(otroBeneficioTieneMasUsos(Beneficio)).
+
+otroBeneficioTieneMasUsos(Beneficio) :-
+    gozaBeneficio(_, OtroBeneficio),
+    cantidadDeUsosPorBeneficio(Beneficio, Cantidad),
+    cantidadDeUsosPorBeneficio(OtroBeneficio, CantidadOtrosUsos),
+    OtroBeneficio \= Beneficio,
+    CantidadOtrosUsos > Cantidad.
+
+cantidadDeUsosPorBeneficio(Beneficio, Cantidad) :-
+    findall(Uso, gozaBeneficio(_, Beneficio), Usos),
+    length(Usos, Cantidad).
