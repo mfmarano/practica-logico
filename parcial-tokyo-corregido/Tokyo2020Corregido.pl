@@ -1,11 +1,3 @@
-leGusta(romeo, julieta).
-
-seGustan(UnaPersona, OtraPersona) :-
-    leGusta(UnaPersona, OtraPersona).
-
-seGustan(UnaPersona, OtraPersona) :-
-    seGustan(OtraPersona, UnaPersona).
-
 %  ===============
 %      Punto 1
 %  ===============
@@ -79,17 +71,16 @@ vinoAPasear(Atleta) :-
 %      Punto 3
 %  ===============
 
-% medalla(medalla, disciplina, altetaOPais)
-% atleta(nombre, edad, pais)
-
 medallasDelPais(Disciplina, Medalla, Pais) :-
     medalla(Medalla, Disciplina, Ganador),
-    paisGanadorSegunDisciplina(Disciplina, Ganador, Pais).
+    paisSegunDisciplina(Disciplina, Ganador, Pais).
 
-paisGanadorSegunDisciplina(Disciplina, Ganador, Ganador) :-
+% Relaciona al país según la disciplina.
+% Si es individual, relaciona al país del atleta. Si es en equipo, relaciona al país.
+paisSegunDisciplina(Disciplina, Ganador, Ganador) :-
     enEquipo(Disciplina).
 
-paisGanadorSegunDisciplina(Disciplina, Ganador, Pais) :-
+paisSegunDisciplina(Disciplina, Ganador, Pais) :-
     individual(Disciplina),
     atleta(Ganador, _, Pais).
 
@@ -97,16 +88,18 @@ paisGanadorSegunDisciplina(Disciplina, Ganador, Pais) :-
 %      Punto 4
 %  ===============
 
-participoEn(Atleta, Disciplina, Ronda) :-
-    individual(Disciplina),
-    compite(Atleta, Disciplina),
-    participaEnEvento(Atleta, Disciplina, Ronda).
+participoEn(AtletaOPais, Disciplina, Ronda) :-
+    participanteSegunDisciplina(Disciplina, AtletaOPais, Participante),
+    participaEnEvento(Participante, Disciplina, Ronda).
 
-participoEn(Atleta, Disciplina, Ronda) :-
+% Relaciona al participante según la disciplina.
+% Si es individual, relaciona al atleta. Si es en equipo, relaciona al país del atleta.
+participanteSegunDisciplina(Disciplina, AtletaOPais, AtletaOPais) :-
+    individual(Disciplina).
+
+participanteSegunDisciplina(Disciplina, AtletaOPais, Participante) :-
     enEquipo(Disciplina),
-    compite(Atleta, Disciplina),
-    atleta(Atleta, _, Pais),
-    participaEnEvento(Pais, Disciplina, Ronda).
+    atleta(AtletaOPais, _, Participante).
 
 participaEnEvento(Participante, Disciplina, Ronda) :-
     evento(Disciplina, Ronda, Participantes),
@@ -116,50 +109,53 @@ participaEnEvento(Participante, Disciplina, Ronda) :-
 %      Punto 5
 %  ===============
 
+pais(Pais) :-
+    distinct(atleta(_, _, Pais)).
+
 dominio(Pais, Disciplina) :-
+    pais(Pais),
     individual(Disciplina),
-    medalla(_, Disciplina, Atleta),
-    atleta(Atleta, _, Pais),
-    forall(medalla(_, Disciplina, OtroAtleta), atleta(OtroAtleta, _, Pais)).
+    forall(medalla(Medalla, Disciplina, _), medallasDelPais(Disciplina, Medalla, Pais)).
 
 %  ===============
 %      Punto 6
 %  ===============
 
 medallaRapida(Disciplina) :-
-    evento(Disciplina, rondaUnica, _),
-    seDefinieronMedallas(Disciplina).
+    evento(Disciplina, Ronda, _),
+    not(tieneOtraRonda(Disciplina, Ronda)).
 
-seDefinieronMedallas(Disciplina) :-
-    medalla(bronce, Disciplina, _),
-    medalla(plata, Disciplina, _),
-    medalla(oro, Disciplina, _).
+tieneOtraRonda(Disciplina, Ronda) :-
+    evento(Disciplina, OtraRonda, _),
+    Ronda \= OtraRonda.
 
 %  ===============
 %      Punto 7
 %  ===============
 
+disciplina(Disciplina) :-
+    distinct(compite(_, Disciplina)).
+    
+
 noEsElFuerte(Pais, Disciplina) :-
-    atleta(_, _, Pais),
-    compite(_, Disciplina),
-    forall(atleta(Atleta, _, Pais), noEsElFuerteAtleta(Atleta, Disciplina)).
+    pais(Pais),
+    disciplina(Disciplina),
+    leFueMal(Pais, Disciplina).
 
-noEsElFuerteAtleta(Atleta, Disciplina) :-
-    not(participoEn(Atleta, Disciplina, _)).
+leFueMal(Pais, Disciplina) :-
+    not(participoEn(Pais, Disciplina, _)).
 
-noEsElFuerteAtleta(Atleta, Disciplina) :-
-    rondaInicialSegunDisciplina(Disciplina, RondaInicial),
-    participoEn(Atleta, Disciplina, RondaInicial),
-    not(participoEnOtraRonda(Atleta, Disciplina, RondaInicial)).
+leFueMal(Pais, Disciplina) :-
+    not(participoEnRondaNoInicial(Pais, Disciplina)).
 
-participoEnOtraRonda(Atleta, Disciplina, Ronda) :-
-    participoEn(Atleta, Disciplina, OtraRonda),
-    OtraRonda \= Ronda.
+participoEnRondaNoInicial(Pais, Disciplina) :-
+    participoEn(Pais, Disciplina, Ronda),
+    not(rondaInicialSegunDisciplina(Disciplina, Ronda)).
 
 rondaInicialSegunDisciplina(Disciplina, faseDeGrupos) :-
     enEquipo(Disciplina).
 
-rondaInicialSegunDisciplina(Disciplina, 1) :-
+rondaInicialSegunDisciplina(Disciplina, ronda1) :-
     individual(Disciplina).
 
 %  ===============
@@ -167,7 +163,7 @@ rondaInicialSegunDisciplina(Disciplina, 1) :-
 %  ===============
 
 medallasEfectivas(Pais, CuentaFinal) :-
-    medallasDelPais(_, _, Pais),
+    pais(Pais),
     findall(Valor, valorPorMedallaDePais(Pais, Valor), Valores),
     sumlist(Valores, CuentaFinal).
 
@@ -189,14 +185,8 @@ laEspecialidad(Atleta) :-
     forall(participoEn(Atleta, Disciplina, _), obtuvoMedallaOroOPlata(Atleta, Disciplina)).
 
 obtuvoMedallaOroOPlata(Atleta, Disciplina) :-
-    enEquipo(Disciplina),
-    atleta(Atleta, _, Pais),
-    medallasDelPais(Disciplina, Medalla, Pais),
-    medallaDeOroODePlata(Medalla).
-
-obtuvoMedallaOroOPlata(Atleta, Disciplina) :-
-    individual(Disciplina),
-    medalla(Medalla, Disciplina, Atleta),
+    medalla(Medalla, Disciplina, Ganador),
+    participanteSegunDisciplina(Disciplina, Atleta, Ganador),
     medallaDeOroODePlata(Medalla).
 
 medallaDeOroODePlata(oro).

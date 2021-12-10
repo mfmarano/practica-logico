@@ -166,14 +166,9 @@ laEspecialidad(Atleta) :-
     forall(participoEn(Atleta, Disciplina, _), obtuvoMedallaOroOPlata(Atleta, Disciplina)).
 
 obtuvoMedallaOroOPlata(Atleta, Disciplina) :-
-    enEquipo(Disciplina),
-    atleta(Atleta, _, Pais),
-    medallasDelPais(Disciplina, Medalla, Pais),
-    medallaDeOroODePlata(Medalla).
-
-obtuvoMedallaOroOPlata(Atleta, Disciplina) :-
-    individual(Disciplina),
-    medalla(Medalla, Disciplina, Atleta),
+    medalla(Medalla, Disciplina, Ganador),
+    disciplina(Disciplina, Tipo),
+    participanteParaTipo(Tipo, Atleta, Ganador),
     medallaDeOroODePlata(Medalla).
 
 medallaDeOroODePlata(oro).
